@@ -1,0 +1,43 @@
+[project]
+name = "bpmn-security-analysis"
+version = "0.1.0"
+description = "Security risk and privacy analysis framework for BPMN 2.0 process models"
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "lxml>=5.0",
+    "neo4j>=5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "mypy>=1.0",
+    "ruff>=0.4",
+]
+
+[project.scripts]
+bpmn-security = "bpmn_security.cli:main"
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true

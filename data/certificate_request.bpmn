@@ -1,0 +1,484 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:activiti="http://activiti.org/bpmn"
+             targetNamespace="http://bpmn.io/schema/bpmn"
+             id="Definitions_CertificateRequest">
+
+  <!-- =====================================================================
+       Collaboration: Applicant Pool  +  Certification Authority Pool
+       ===================================================================== -->
+  <collaboration id="Collab_CertRequest">
+    <participant id="Pool_Applicant"  name="Applicant"               processRef="Proc_Applicant" />
+    <participant id="Pool_CA"         name="Certification Authority"  processRef="Proc_CA" />
+
+    <!-- Message flows between pools -->
+    <messageFlow id="MF_SubmitRequest"   name="Submit Certificate Request"
+                 sourceRef="Task_SendRequest"        targetRef="Task_ReceiveRequest" />
+    <messageFlow id="MF_IssueCertificate" name="Issue Certificate"
+                 sourceRef="Task_SendCertificate"    targetRef="Task_ReceiveCertificate" />
+    <messageFlow id="MF_SendRejection"   name="Rejection Notice"
+                 sourceRef="Task_SendRejection"      targetRef="Task_ReceiveRejection" />
+  </collaboration>
+
+  <!-- =====================================================================
+       Pool 1: Applicant Process
+       ===================================================================== -->
+  <process id="Proc_Applicant" name="Applicant Process" isExecutable="false">
+
+    <!-- Lanes -->
+    <laneSet id="LaneSet_Applicant">
+      <lane id="Lane_Applicant_User"    name="Applicant User">
+        <flowNodeRef>Start_ApplicantBegin</flowNodeRef>
+        <flowNodeRef>Task_FillForm</flowNodeRef>
+        <flowNodeRef>Task_SendRequest</flowNodeRef>
+        <flowNodeRef>Task_ReceiveCertificate</flowNodeRef>
+        <flowNodeRef>Task_ReceiveRejection</flowNodeRef>
+        <flowNodeRef>GW_OutcomeDecision</flowNodeRef>
+        <flowNodeRef>End_ApplicantSuccess</flowNodeRef>
+        <flowNodeRef>End_ApplicantRejected</flowNodeRef>
+      </lane>
+      <lane id="Lane_Applicant_System"  name="Applicant IT System">
+        <flowNodeRef>Task_ValidateLocally</flowNodeRef>
+        <flowNodeRef>Task_StoreLocalCopy</flowNodeRef>
+        <flowNodeRef>Timer_RetentionExpiry</flowNodeRef>
+        <flowNodeRef>Task_DeleteLocalCopy</flowNodeRef>
+        <flowNodeRef>End_RetentionEnd</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Start event -->
+    <startEvent id="Start_ApplicantBegin" name="Applicant Starts Request" />
+
+    <!-- UserTask: fill application form (Online interaction) -->
+    <userTask id="Task_FillForm" name="Fill Certificate Application Form">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Interaction Type=Online; Audit=Medium" />
+        </activiti:properties>
+      </extensionElements>
+      <dataOutputAssociation id="DOA_FillForm_AppReq">
+        <sourceRef>Task_FillForm</sourceRef>
+        <targetRef>DataObjRef_AppRequest</targetRef>
+      </dataOutputAssociation>
+    </userTask>
+
+    <!-- ServiceTask: local validation (Stateless) -->
+    <serviceTask id="Task_ValidateLocally" name="Validate Application Data">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Stateless; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataInputAssociation id="DIA_Validate_AppReq">
+        <sourceRef>DataObjRef_AppRequest</sourceRef>
+        <targetRef>Task_ValidateLocally</targetRef>
+      </dataInputAssociation>
+    </serviceTask>
+
+    <!-- SendTask: send request to CA (Mail) -->
+    <sendTask id="Task_SendRequest" name="Send Application to CA">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Mail; Audit=Medium" />
+        </activiti:properties>
+      </extensionElements>
+      <dataInputAssociation id="DIA_Send_AppReq">
+        <sourceRef>DataObjRef_AppRequest</sourceRef>
+        <targetRef>Task_SendRequest</targetRef>
+      </dataInputAssociation>
+    </sendTask>
+
+    <!-- ReceiveTask: receive certificate back -->
+    <receiveTask id="Task_ReceiveCertificate" name="Receive Issued Certificate">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Mail; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataOutputAssociation id="DOA_ReceiveCert_Cert">
+        <sourceRef>Task_ReceiveCertificate</sourceRef>
+        <targetRef>DataObjRef_Certificate</targetRef>
+      </dataOutputAssociation>
+    </receiveTask>
+
+    <!-- ReceiveTask: receive rejection -->
+    <receiveTask id="Task_ReceiveRejection" name="Receive Rejection Notice">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Mail; Audit=Low" />
+        </activiti:properties>
+      </extensionElements>
+    </receiveTask>
+
+    <!-- ServiceTask: store local copy of certificate (Stateful) -->
+    <serviceTask id="Task_StoreLocalCopy" name="Store Local Certificate Copy">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Stateful; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataInputAssociation id="DIA_Store_Cert">
+        <sourceRef>DataObjRef_Certificate</sourceRef>
+        <targetRef>Task_StoreLocalCopy</targetRef>
+      </dataInputAssociation>
+      <dataOutputAssociation id="DOA_Store_Profile">
+        <sourceRef>Task_StoreLocalCopy</sourceRef>
+        <targetRef>DataObjRef_Profile</targetRef>
+      </dataOutputAssociation>
+    </serviceTask>
+
+    <!-- Generic Task: delete local copy after retention period -->
+    <task id="Task_DeleteLocalCopy" name="Delete Expired Local Certificate Copy">
+      <dataInputAssociation id="DIA_Delete_Cert">
+        <sourceRef>DataObjRef_Certificate</sourceRef>
+        <targetRef>Task_DeleteLocalCopy</targetRef>
+      </dataInputAssociation>
+    </task>
+
+    <!-- Timer boundary event on StoreLocalCopy — fires after retention period -->
+    <boundaryEvent id="Timer_RetentionExpiry" name="3-Year Retention Expires"
+                   attachedToRef="Task_StoreLocalCopy" cancelActivity="false">
+      <timerEventDefinition>
+        <timeDuration>P3Y</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+
+    <!-- Exclusive gateway: certificate issued vs rejected -->
+    <exclusiveGateway id="GW_OutcomeDecision" name="Certificate Issued?" />
+
+    <!-- End events -->
+    <endEvent id="End_ApplicantSuccess"  name="Certificate Received" />
+    <endEvent id="End_ApplicantRejected" name="Application Rejected" />
+    <endEvent id="End_RetentionEnd"      name="Retention Period Ended" />
+
+    <!-- Sequence flows — Applicant pool -->
+    <sequenceFlow id="SF_Start_FillForm"        sourceRef="Start_ApplicantBegin"    targetRef="Task_FillForm" />
+    <sequenceFlow id="SF_FillForm_Validate"      sourceRef="Task_FillForm"           targetRef="Task_ValidateLocally" />
+    <sequenceFlow id="SF_Validate_Send"          sourceRef="Task_ValidateLocally"    targetRef="Task_SendRequest" />
+    <sequenceFlow id="SF_Send_GW"                sourceRef="Task_SendRequest"        targetRef="GW_OutcomeDecision" />
+    <sequenceFlow id="SF_GW_ReceiveCert"         sourceRef="GW_OutcomeDecision"      targetRef="Task_ReceiveCertificate">
+      <conditionExpression>issued == true</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="SF_GW_ReceiveRejection"    sourceRef="GW_OutcomeDecision"      targetRef="Task_ReceiveRejection">
+      <conditionExpression>issued == false</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="SF_ReceiveCert_Store"      sourceRef="Task_ReceiveCertificate" targetRef="Task_StoreLocalCopy" />
+    <sequenceFlow id="SF_Store_EndSuccess"       sourceRef="Task_StoreLocalCopy"     targetRef="End_ApplicantSuccess" />
+    <sequenceFlow id="SF_ReceiveRejection_End"   sourceRef="Task_ReceiveRejection"   targetRef="End_ApplicantRejected" />
+    <sequenceFlow id="SF_Timer_DeleteCopy"       sourceRef="Timer_RetentionExpiry"   targetRef="Task_DeleteLocalCopy" />
+    <sequenceFlow id="SF_DeleteCopy_End"         sourceRef="Task_DeleteLocalCopy"    targetRef="End_RetentionEnd" />
+
+    <!-- Data objects — Applicant pool -->
+    <dataObject id="DataObj_AppRequest"  name="ApplicationRequest" isCollection="false" />
+    <dataObjectReference id="DataObjRef_AppRequest"
+                         dataObjectRef="DataObj_AppRequest"
+                         name="ApplicationRequest">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Personal=yes; Size=5; Order of Size=KB; Load Dependence=2" />
+        </activiti:properties>
+      </extensionElements>
+    </dataObjectReference>
+
+    <dataObject id="DataObj_Certificate" name="Certificate" isCollection="false" />
+    <dataObjectReference id="DataObjRef_Certificate"
+                         dataObjectRef="DataObj_Certificate"
+                         name="Certificate">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Personal=yes; Size=2; Order of Size=KB; Load Dependence=3" />
+        </activiti:properties>
+      </extensionElements>
+    </dataObjectReference>
+
+    <dataObject id="DataObj_Profile"     name="Profile" isCollection="false" />
+    <dataObjectReference id="DataObjRef_Profile"
+                         dataObjectRef="DataObj_Profile"
+                         name="Profile">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Personal=yes; Size=10; Order of Size=KB; Load Dependence=1" />
+        </activiti:properties>
+      </extensionElements>
+    </dataObjectReference>
+
+    <!-- Text annotations — Applicant pool -->
+    <textAnnotation id="Ann_FillForm">
+      <text>Interaction Type=Online; Audit=Medium</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_ValidateLocally">
+      <text>Communication Type=Stateless; Audit=High</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_SendRequest">
+      <text>Communication Type=Mail; Audit=Medium</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_StoreLocalCopy">
+      <text>Communication Type=Stateful; Audit=High</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_AppRequest_Data">
+      <text>Personal=yes; Size=5; Order of Size=KB; Load Dependence=2</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_Certificate_Data">
+      <text>Personal=yes; Size=2; Order of Size=KB; Load Dependence=3</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_Profile_Data">
+      <text>Personal=yes; Size=10; Order of Size=KB; Load Dependence=1</text>
+    </textAnnotation>
+
+    <!-- Associations (text annotation → task/data object) -->
+    <association id="Assoc_Ann_FillForm"         sourceRef="Task_FillForm"         targetRef="Ann_FillForm" />
+    <association id="Assoc_Ann_Validate"         sourceRef="Task_ValidateLocally"  targetRef="Ann_ValidateLocally" />
+    <association id="Assoc_Ann_Send"             sourceRef="Task_SendRequest"      targetRef="Ann_SendRequest" />
+    <association id="Assoc_Ann_Store"            sourceRef="Task_StoreLocalCopy"   targetRef="Ann_StoreLocalCopy" />
+    <association id="Assoc_Ann_AppReq_Data"      sourceRef="DataObjRef_AppRequest"  targetRef="Ann_AppRequest_Data" />
+    <association id="Assoc_Ann_Cert_Data"        sourceRef="DataObjRef_Certificate" targetRef="Ann_Certificate_Data" />
+    <association id="Assoc_Ann_Profile_Data"     sourceRef="DataObjRef_Profile"     targetRef="Ann_Profile_Data" />
+
+  </process>
+
+  <!-- =====================================================================
+       Pool 2: Certification Authority Process
+       ===================================================================== -->
+  <process id="Proc_CA" name="Certification Authority Process" isExecutable="false">
+
+    <!-- Lanes -->
+    <laneSet id="LaneSet_CA">
+      <lane id="Lane_CA_Officer"    name="CA Verification Officer">
+        <flowNodeRef>Start_CA_ReceiveRequest</flowNodeRef>
+        <flowNodeRef>Task_ReceiveRequest</flowNodeRef>
+        <flowNodeRef>Task_VerifyIdentity</flowNodeRef>
+        <flowNodeRef>GW_VerificationResult</flowNodeRef>
+        <flowNodeRef>Task_SendRejection</flowNodeRef>
+        <flowNodeRef>End_CA_Rejected</flowNodeRef>
+      </lane>
+      <lane id="Lane_CA_System" name="CA Issuing System">
+        <flowNodeRef>Task_IssueCertificate</flowNodeRef>
+        <flowNodeRef>Task_SendCertificate</flowNodeRef>
+        <flowNodeRef>Task_LogAuditRecord</flowNodeRef>
+        <flowNodeRef>IntCatch_AuditTimer</flowNodeRef>
+        <flowNodeRef>Task_DeleteAuditLog</flowNodeRef>
+        <flowNodeRef>End_CA_Issued</flowNodeRef>
+        <flowNodeRef>End_CA_AuditDeleted</flowNodeRef>
+      </lane>
+    </laneSet>
+
+    <!-- Start event -->
+    <startEvent id="Start_CA_ReceiveRequest" name="Request Arrives at CA" />
+
+    <!-- ReceiveTask: receive application from Applicant -->
+    <receiveTask id="Task_ReceiveRequest" name="Receive Application Request">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Mail; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataOutputAssociation id="DOA_ReceiveReq_AppReq">
+        <sourceRef>Task_ReceiveRequest</sourceRef>
+        <targetRef>DataObjRef_CA_AppRequest</targetRef>
+      </dataOutputAssociation>
+    </receiveTask>
+
+    <!-- UserTask: verify applicant identity (Offline) -->
+    <userTask id="Task_VerifyIdentity" name="Verify Applicant Identity">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Interaction Type=Offline; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataInputAssociation id="DIA_Verify_AppReq">
+        <sourceRef>DataObjRef_CA_AppRequest</sourceRef>
+        <targetRef>Task_VerifyIdentity</targetRef>
+      </dataInputAssociation>
+    </userTask>
+
+    <!-- Exclusive gateway: verification passed? -->
+    <exclusiveGateway id="GW_VerificationResult" name="Verification Passed?" />
+
+    <!-- ServiceTask: issue the certificate (Stateful) -->
+    <serviceTask id="Task_IssueCertificate" name="Issue Digital Certificate">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Stateful; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataInputAssociation id="DIA_Issue_AppReq">
+        <sourceRef>DataObjRef_CA_AppRequest</sourceRef>
+        <targetRef>Task_IssueCertificate</targetRef>
+      </dataInputAssociation>
+      <dataOutputAssociation id="DOA_Issue_Cert">
+        <sourceRef>Task_IssueCertificate</sourceRef>
+        <targetRef>DataObjRef_CA_Certificate</targetRef>
+      </dataOutputAssociation>
+    </serviceTask>
+
+    <!-- SendTask: send certificate to Applicant (PEC) -->
+    <sendTask id="Task_SendCertificate" name="Send Certificate to Applicant">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=PEC; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataInputAssociation id="DIA_SendCert_Cert">
+        <sourceRef>DataObjRef_CA_Certificate</sourceRef>
+        <targetRef>Task_SendCertificate</targetRef>
+      </dataInputAssociation>
+    </sendTask>
+
+    <!-- SendTask: send rejection notice (Mail) -->
+    <sendTask id="Task_SendRejection" name="Send Rejection Notice to Applicant">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Mail; Audit=Medium" />
+        </activiti:properties>
+      </extensionElements>
+    </sendTask>
+
+    <!-- ServiceTask: write audit log record (Stateful) -->
+    <serviceTask id="Task_LogAuditRecord" name="Write Audit Log Record">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Communication Type=Stateful; Audit=High" />
+        </activiti:properties>
+      </extensionElements>
+      <dataOutputAssociation id="DOA_Log_AuditLog">
+        <sourceRef>Task_LogAuditRecord</sourceRef>
+        <targetRef>DataObjRef_AuditLog</targetRef>
+      </dataOutputAssociation>
+    </serviceTask>
+
+    <!-- IntermediateCatchEvent: timer fires after audit log retention period -->
+    <intermediateCatchEvent id="IntCatch_AuditTimer" name="7-Year Audit Retention Expires">
+      <timerEventDefinition>
+        <timeDuration>P7Y</timeDuration>
+      </timerEventDefinition>
+    </intermediateCatchEvent>
+
+    <!-- Generic Task: delete audit log -->
+    <task id="Task_DeleteAuditLog" name="Delete Audit Log Entry">
+      <dataInputAssociation id="DIA_Delete_AuditLog">
+        <sourceRef>DataObjRef_AuditLog</sourceRef>
+        <targetRef>Task_DeleteAuditLog</targetRef>
+      </dataInputAssociation>
+    </task>
+
+    <!-- End events -->
+    <endEvent id="End_CA_Issued"        name="Certificate Issued" />
+    <endEvent id="End_CA_Rejected"      name="Application Rejected by CA" />
+    <endEvent id="End_CA_AuditDeleted"  name="Audit Log Deleted">
+      <terminateEventDefinition />
+    </endEvent>
+
+    <!-- Sequence flows — CA pool -->
+    <sequenceFlow id="SF_CA_Start_Receive"     sourceRef="Start_CA_ReceiveRequest"  targetRef="Task_ReceiveRequest" />
+    <sequenceFlow id="SF_CA_Receive_Verify"    sourceRef="Task_ReceiveRequest"      targetRef="Task_VerifyIdentity" />
+    <sequenceFlow id="SF_CA_Verify_GW"         sourceRef="Task_VerifyIdentity"      targetRef="GW_VerificationResult" />
+    <sequenceFlow id="SF_CA_GW_Issue"          sourceRef="GW_VerificationResult"    targetRef="Task_IssueCertificate">
+      <conditionExpression>verified == true</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="SF_CA_GW_Reject"         sourceRef="GW_VerificationResult"    targetRef="Task_SendRejection">
+      <conditionExpression>verified == false</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="SF_CA_Issue_Send"        sourceRef="Task_IssueCertificate"    targetRef="Task_SendCertificate" />
+    <sequenceFlow id="SF_CA_Send_Log"          sourceRef="Task_SendCertificate"     targetRef="Task_LogAuditRecord" />
+    <sequenceFlow id="SF_CA_Log_Timer"         sourceRef="Task_LogAuditRecord"      targetRef="IntCatch_AuditTimer" />
+    <sequenceFlow id="SF_CA_Timer_Delete"      sourceRef="IntCatch_AuditTimer"      targetRef="Task_DeleteAuditLog" />
+    <sequenceFlow id="SF_CA_Delete_End"        sourceRef="Task_DeleteAuditLog"      targetRef="End_CA_AuditDeleted" />
+    <sequenceFlow id="SF_CA_Log_Issued"        sourceRef="Task_LogAuditRecord"      targetRef="End_CA_Issued" />
+    <sequenceFlow id="SF_CA_Reject_End"        sourceRef="Task_SendRejection"       targetRef="End_CA_Rejected" />
+
+    <!-- Data objects — CA pool -->
+    <dataObject id="DataObj_CA_AppRequest"  name="ApplicationRequest" isCollection="false" />
+    <dataObjectReference id="DataObjRef_CA_AppRequest"
+                         dataObjectRef="DataObj_CA_AppRequest"
+                         name="ApplicationRequest">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Personal=yes; Size=5; Order of Size=KB; Load Dependence=2" />
+        </activiti:properties>
+      </extensionElements>
+    </dataObjectReference>
+
+    <dataObject id="DataObj_CA_Certificate" name="Certificate" isCollection="false" />
+    <dataObjectReference id="DataObjRef_CA_Certificate"
+                         dataObjectRef="DataObj_CA_Certificate"
+                         name="Certificate">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Personal=yes; Size=2; Order of Size=KB; Load Dependence=3" />
+        </activiti:properties>
+      </extensionElements>
+    </dataObjectReference>
+
+    <dataObject id="DataObj_AuditLog" name="AuditLog" isCollection="false" />
+    <dataObjectReference id="DataObjRef_AuditLog"
+                         dataObjectRef="DataObj_AuditLog"
+                         name="AuditLog">
+      <extensionElements>
+        <activiti:properties>
+          <activiti:property name="annotation"
+            value="Personal=no; Size=1; Order of Size=KB; Load Dependence=1" />
+        </activiti:properties>
+      </extensionElements>
+    </dataObjectReference>
+
+    <!-- Text annotations — CA pool -->
+    <textAnnotation id="Ann_CA_ReceiveRequest">
+      <text>Communication Type=Mail; Audit=High</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_VerifyIdentity">
+      <text>Interaction Type=Offline; Audit=High</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_IssueCertificate">
+      <text>Communication Type=Stateful; Audit=High</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_SendCertificate">
+      <text>Communication Type=PEC; Audit=High</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_SendRejection">
+      <text>Communication Type=Mail; Audit=Medium</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_LogAuditRecord">
+      <text>Communication Type=Stateful; Audit=High</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_AppRequest_Data">
+      <text>Personal=yes; Size=5; Order of Size=KB; Load Dependence=2</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_Certificate_Data">
+      <text>Personal=yes; Size=2; Order of Size=KB; Load Dependence=3</text>
+    </textAnnotation>
+    <textAnnotation id="Ann_CA_AuditLog_Data">
+      <text>Personal=no; Size=1; Order of Size=KB; Load Dependence=1</text>
+    </textAnnotation>
+
+    <!-- Associations — CA pool -->
+    <association id="Assoc_CA_Ann_Receive"    sourceRef="Task_ReceiveRequest"    targetRef="Ann_CA_ReceiveRequest" />
+    <association id="Assoc_CA_Ann_Verify"     sourceRef="Task_VerifyIdentity"    targetRef="Ann_CA_VerifyIdentity" />
+    <association id="Assoc_CA_Ann_Issue"      sourceRef="Task_IssueCertificate"  targetRef="Ann_CA_IssueCertificate" />
+    <association id="Assoc_CA_Ann_SendCert"   sourceRef="Task_SendCertificate"   targetRef="Ann_CA_SendCertificate" />
+    <association id="Assoc_CA_Ann_SendRej"    sourceRef="Task_SendRejection"     targetRef="Ann_CA_SendRejection" />
+    <association id="Assoc_CA_Ann_Log"        sourceRef="Task_LogAuditRecord"    targetRef="Ann_CA_LogAuditRecord" />
+    <association id="Assoc_CA_Ann_AppReq"     sourceRef="DataObjRef_CA_AppRequest"  targetRef="Ann_CA_AppRequest_Data" />
+    <association id="Assoc_CA_Ann_Cert"       sourceRef="DataObjRef_CA_Certificate" targetRef="Ann_CA_Certificate_Data" />
+    <association id="Assoc_CA_Ann_Audit"      sourceRef="DataObjRef_AuditLog"       targetRef="Ann_CA_AuditLog_Data" />
+
+  </process>
+
+</definitions>

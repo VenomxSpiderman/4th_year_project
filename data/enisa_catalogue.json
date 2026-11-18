@@ -1,0 +1,709 @@
+[
+  {
+    "_comment": "=== SendTask / Communication Type = Mail or Post-Office ===",
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Mail",
+    "threat": "Loss of integrity of sensitive information",
+    "behaviour": "Attacker intercepts and modifies data during transmission over an insecure email channel.",
+    "impact": 6,
+    "exclude_if": ["PEC"],
+    "mitigation": "Enforce S/MIME or PGP signing and encryption on all outgoing email; deploy a mail gateway that validates digital signatures and rejects unsigned or modified messages before delivery."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Mail",
+    "threat": "Interception of information",
+    "behaviour": "Attacker captures email content in transit due to lack of end-to-end encryption.",
+    "impact": 5,
+    "exclude_if": ["PEC"],
+    "mitigation": "Require TLS (STARTTLS with DANE or MTA-STS) for all SMTP connections and apply end-to-end encryption (S/MIME or PGP) for sensitive messages so intercepted traffic remains unreadable."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Mail",
+    "threat": "Replay of messages",
+    "behaviour": "Attacker re-sends a previously captured email message to trigger duplicate processing.",
+    "impact": 4,
+    "mitigation": "Include a cryptographically unique message-ID and timestamp in each email and enforce idempotency checks at the receiving application so replayed messages are detected and discarded."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Post-Office",
+    "threat": "Loss of integrity of sensitive information",
+    "behaviour": "Physical mail is tampered with or substituted during postal handling.",
+    "impact": 5,
+    "exclude_if": [],
+    "mitigation": "Use tamper-evident sealed envelopes and registered/tracked delivery services; include a document hash or reference code that the recipient can verify against a secure out-of-band channel."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Post-Office",
+    "threat": "Interception of information",
+    "behaviour": "Physical correspondence is opened and read by an unauthorised party during transit.",
+    "impact": 5,
+    "mitigation": "Transmit sensitive information via certified/registered post with tamper-evident packaging; for highly sensitive content, encrypt the contained document and deliver the decryption key through a separate channel."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Post-Office",
+    "threat": "Replay of messages",
+    "behaviour": "A copy of physical documentation is resubmitted to gain illegitimate processing.",
+    "impact": 3,
+    "mitigation": "Assign each document a unique, sequentially numbered reference code that is validated against a registry at receipt; mark original documents with copy-evident security features (watermark, serial stamp) and reject duplicates."
+  },
+  {
+    "_comment": "=== SendTask / Communication Type = PEC (certified email — integrity excluded) ===",
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "PEC",
+    "threat": "Replay of messages",
+    "behaviour": "Attacker re-sends a captured PEC message to trigger a duplicate transaction despite delivery certification.",
+    "impact": 3,
+    "mitigation": "Implement idempotency checks on the receiving application using the PEC message-ID and timestamp; deduplicate incoming PEC receipts and reject any message-ID already recorded as processed."
+  },
+  {
+    "_comment": "=== SendTask / Communication Type = Interoperability Protocol ===",
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Interop. Protocol",
+    "threat": "Man-in-the-middle attack",
+    "behaviour": "Attacker positions themselves between two communicating systems using an interoperability protocol and silently alters messages.",
+    "impact": 7,
+    "mitigation": "Enforce mutual TLS (mTLS) with certificate pinning on all interoperability protocol connections and apply message-level signing (e.g. WS-Security or JWS) so tampering is detected independently of the transport layer."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Interop. Protocol",
+    "threat": "Link disruption",
+    "behaviour": "Attacker disrupts the communication link between two systems exchanging data via an interoperability protocol, causing service degradation.",
+    "impact": 5,
+    "mitigation": "Configure automatic retry logic with exponential back-off and circuit-breaker patterns; establish redundant network paths or fallback endpoints so a single link failure does not halt the interoperability exchange."
+  },
+  {
+    "_comment": "=== ReceiveTask / Communication Type = Mail ===",
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Mail",
+    "threat": "Social engineering",
+    "behaviour": "Attacker sends a crafted email impersonating a trusted party to manipulate the recipient into performing a harmful action.",
+    "impact": 5,
+    "mitigation": "Enable DMARC (with a reject policy), DKIM, and SPF to authenticate sender domains; train users to verify unexpected requests through a secondary channel before acting on email instructions."
+  },
+  {
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Mail",
+    "threat": "Identity theft",
+    "behaviour": "Attacker harvests credentials or personal identifiers from email content to impersonate the legitimate user.",
+    "impact": 6,
+    "mitigation": "Avoid transmitting credentials or high-value personal identifiers in email body or attachments; use time-limited, single-use links for authentication flows and enforce MFA so harvested credentials alone cannot grant access."
+  },
+  {
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Mail",
+    "threat": "Unsolicited email / SPAM",
+    "behaviour": "Attacker floods the receive task with unsolicited messages, degrading availability and increasing processing errors.",
+    "impact": 3,
+    "mitigation": "Deploy an anti-spam gateway with content filtering and rate limiting per sending domain; implement allow-listing for expected senders and route unsolicited bulk mail to quarantine for review rather than automated processing."
+  },
+  {
+    "_comment": "=== UserTask / Interaction Type = Online ===",
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Online",
+    "threat": "Identity theft",
+    "behaviour": "Attacker exploits weak authentication on the online interface to assume the identity of a legitimate user.",
+    "impact": 7,
+    "mitigation": "Enforce multi-factor authentication (MFA) on all online user interfaces; apply HTTPS with HSTS, use secure session management (short-lived tokens, re-authentication on privilege escalation), and monitor for anomalous login patterns."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Online",
+    "threat": "Social engineering",
+    "behaviour": "Attacker deceives an online user through a phishing page or fake notification to obtain credentials or trigger harmful actions.",
+    "impact": 6,
+    "mitigation": "Implement a Content Security Policy (CSP) and deploy an anti-phishing browser indicator (e.g. Extended Validation certificate or security badge); conduct regular phishing-simulation training so users recognise and report fake pages."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Online",
+    "threat": "Malicious code execution",
+    "behaviour": "Attacker injects malicious scripts (e.g. XSS) into the online user interface to execute code in the user's browser session.",
+    "impact": 7,
+    "mitigation": "Apply strict output encoding and a Content Security Policy (CSP) that blocks inline scripts; use a Web Application Firewall (WAF) to detect and block injection payloads, and enforce regular DAST/SAST scans of the UI codebase."
+  },
+  {
+    "_comment": "=== UserTask / Interaction Type = Offline ===",
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Offline",
+    "threat": "Insecure offline interaction",
+    "behaviour": "Data exchanged through offline channels (paper forms, USB media) bypasses digital access controls, enabling unauthorised access.",
+    "impact": 5,
+    "mitigation": "Restrict removable media via endpoint DLP controls and enforce a clear-desk/clear-screen policy; encrypt data stored on any offline medium and require management approval for physical data-exchange procedures."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Offline",
+    "threat": "Erroneous use of devices and systems",
+    "behaviour": "User makes mistakes when performing the task through manual, offline means, leading to incorrect or incomplete data processing.",
+    "impact": 3,
+    "mitigation": "Provide structured paper forms or offline tools with mandatory field validation and dual-entry verification; establish a supervisor sign-off step for offline submissions before data is entered into the system of record."
+  },
+  {
+    "_comment": "=== ServiceTask / Stateful ===",
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateful",
+    "threat": "Service unavailability",
+    "behaviour": "Attacker or system failure disrupts a stateful service, causing loss of session state and process continuity failures.",
+    "impact": 6,
+    "mitigation": "Deploy the stateful service across redundant instances with session-state replication (e.g. distributed cache); implement health-check-driven automatic failover so a disruption triggers immediate transfer of session state to a healthy node."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateful",
+    "threat": "Malicious code execution",
+    "behaviour": "Attacker injects malicious code into a stateful service endpoint, affecting stored session data and downstream processing.",
+    "impact": 7,
+    "mitigation": "Enforce strict input validation and parameterised queries on all stateful service endpoints; run the service with least-privilege OS accounts, apply runtime application self-protection (RASP), and perform regular code-level security reviews."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateful",
+    "threat": "Device failure",
+    "behaviour": "Hardware or software failure of the stateful service component leads to unrecoverable loss of in-flight process state.",
+    "impact": 5,
+    "mitigation": "Persist in-flight process state to a durable, replicated store (e.g. a transactional database or distributed log) before acknowledging each operation; validate recovery procedures regularly through controlled failover drills."
+  },
+  {
+    "_comment": "=== ServiceTask / Stateless ===",
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateless",
+    "threat": "Denial of service",
+    "behaviour": "Attacker floods a stateless service endpoint with requests, exhausting compute resources and rendering it unavailable.",
+    "impact": 6,
+    "mitigation": "Implement rate limiting, request throttling, and auto-scaling on the stateless service endpoint; deploy a WAF or API gateway with DDoS protection to absorb volumetric attacks before they reach the application layer."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateless",
+    "threat": "Malicious code execution",
+    "behaviour": "Attacker exploits an input-validation weakness in a stateless service to execute arbitrary code on the host.",
+    "impact": 7,
+    "mitigation": "Sanitise and strictly validate all inputs at the service boundary; run the stateless service in an isolated container with a read-only filesystem and no-new-privileges seccomp profile, and enforce automated SAST/DAST in the CI pipeline."
+  },
+  {
+    "_comment": "=== Generic Task — erroneous use (any annotation value) ===",
+    "task_type": "Task",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Erroneous use of devices and systems",
+    "behaviour": "User or operator interacts with the system incorrectly, leading to unintended data modification, skipped process steps, or configuration errors.",
+    "impact": 3,
+    "mitigation": "Enforce role-based access controls so users can only perform operations within their authorised scope; provide in-application guidance and mandatory confirmation dialogs for destructive or irreversible actions."
+  },
+  {
+    "_comment": "=== Personal-data threat group (any task with Personal=yes) ===",
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Loss of information in the cloud",
+    "behaviour": "Personal data is lost due to a cloud provider failure, misconfiguration, or targeted attack on the storage infrastructure.",
+    "impact": 4,
+    "mitigation": "Maintain encrypted, geographically separated backups of personal data with tested restoration procedures; apply cloud provider security baselines (e.g. CIS Benchmarks) and enable immutable backup retention to prevent deletion attacks."
+  },
+  {
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Information leakage / disclosure",
+    "behaviour": "Personal data is exposed to unauthorised parties through misconfiguration, insider access, or insufficient access controls.",
+    "impact": 5,
+    "mitigation": "Apply the principle of least privilege to all data stores holding personal data; enable audit logging on all access, and use automated configuration-scanning tools to detect and alert on overly permissive access policies."
+  },
+  {
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Destruction of records",
+    "behaviour": "Personal data is permanently deleted or corrupted by a malicious actor or system failure with no recoverable backup.",
+    "impact": 4,
+    "mitigation": "Enforce immutable, off-site backups with a defined retention schedule and regular restoration tests; apply write-protection or soft-delete mechanisms so accidental or malicious deletion is reversible within the retention window."
+  },
+  {
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Coercion, extortion or corruption",
+    "behaviour": "An insider is coerced, bribed, or otherwise pressured into exposing or altering personal records on behalf of an attacker.",
+    "impact": 4,
+    "mitigation": "Implement four-eyes authorisation for bulk personal data exports or modifications; enable comprehensive audit logging with alerting on anomalous access patterns, and establish a confidential whistleblower channel for reporting coercion attempts."
+  },
+  {
+    "_comment": "=== DISASTER RECOVERY category — new in this extension ===",
+    "_source": "ENISA Threat Landscape 2017, Disaster Recovery threat category",
+
+    "_comment_dr1": "ServiceTask / Stateful — backup failure during stateful service operation",
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateful",
+    "threat": "Failure or disruption of backup or recovery facilities",
+    "behaviour": "A backup or recovery mechanism supporting the stateful service fails silently, leaving the process with no recovery path after a crash.",
+    "impact": 6,
+    "mitigation": "Implement automated backup verification (checksum + test-restore) after every backup cycle and alert on any failed or skipped backup job; maintain a secondary backup target so a single facility failure does not eliminate the recovery path."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateless",
+    "threat": "Failure or disruption of backup or recovery facilities",
+    "behaviour": "Backup infrastructure for a stateless service is unavailable or corrupted, preventing reconstruction of service state after an incident.",
+    "impact": 5,
+    "mitigation": "Store stateless service configuration and dependency snapshots in a versioned, immutable repository (e.g. infrastructure-as-code in a protected VCS branch); perform regular DR drills to confirm the service can be fully re-provisioned from these artefacts."
+  },
+  {
+    "task_type": "Task",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Loss of support services",
+    "behaviour": "Critical support services (power, networking, cooling) required for process execution become unavailable, halting all task processing.",
+    "impact": 5,
+    "mitigation": "Design infrastructure with N+1 redundancy for power (UPS + generator), networking (dual ISP/uplinks), and cooling; define and regularly test a Business Continuity Plan (BCP) that specifies manual fallback procedures for each task when support services are unavailable."
+  },
+  {
+    "task_type": "Task",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Disaster / natural disaster impact",
+    "behaviour": "A physical disaster (flood, fire, earthquake) destroys or renders inaccessible the infrastructure supporting the business process.",
+    "impact": 7,
+    "mitigation": "Host critical process infrastructure across geographically separated data centres in different seismic/flood zones; maintain and regularly test a Disaster Recovery Plan (DRP) with defined RTO/RPO targets to ensure processes can be resumed from the alternate site."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateful",
+    "threat": "Loss of integrity due to recovery process failure",
+    "behaviour": "An incomplete or partial recovery of a stateful service restores an inconsistent state, producing corrupt process data.",
+    "impact": 6,
+    "mitigation": "Apply transactional, atomic recovery procedures backed by write-ahead logging or saga compensation patterns; validate restored data consistency through automated integrity checks before returning the stateful service to production traffic."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateless",
+    "threat": "Loss of integrity due to recovery process failure",
+    "behaviour": "Data reconstructed during recovery of a stateless service is incomplete, causing silent data integrity violations downstream.",
+    "impact": 5,
+    "mitigation": "Use idempotent recovery scripts with checksummed input artefacts and run automated post-recovery data-integrity tests before re-enabling downstream consumers; maintain an event log or message journal so missing transactions can be replayed accurately."
+  },
+  {
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Unrecoverable loss of personal data",
+    "behaviour": "Personal data held in the process is permanently lost following a disaster or recovery failure with no compliant backup, violating GDPR data availability requirements.",
+    "impact": 7,
+    "mitigation": "Maintain GDPR-compliant, encrypted backups of all personal data in a geographically separate facility with a tested recovery procedure; document and regularly validate the RTO/RPO against Article 32 requirements for data availability and resilience."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Online",
+    "threat": "Unavailability of data subject rights portal",
+    "behaviour": "A disaster or service failure makes the online portal through which data subjects exercise GDPR rights (access, erasure) unavailable.",
+    "impact": 5,
+    "mitigation": "Deploy the data-subject rights portal with high-availability architecture (multi-region or active-passive failover) and include it in the BCP; provide an alternative contact channel (email, postal address) on public-facing pages so data subjects can submit requests even during outages."
+  },
+  {
+    "_comment": "=== LEGAL category — new in this extension ===",
+    "_source": "ENISA Threat Landscape 2017, Legal threats category",
+
+    "_comment_leg1": "Regulatory non-compliance for any task",
+    "task_type": "Task",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Legal / regulatory non-compliance",
+    "behaviour": "The process performs an operation in a manner that violates applicable legal or regulatory requirements (e.g. GDPR, eIDAS, NIS Directive), exposing the organisation to enforcement action.",
+    "impact": 6,
+    "mitigation": "Maintain a living compliance register that maps each process task to its applicable legal obligations; integrate automated compliance checks into the process workflow and schedule periodic legal reviews to detect and remediate regulatory drift."
+  },
+  {
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Violation of data protection legislation",
+    "behaviour": "Processing of personal data without a valid legal basis, missing consent, or in excess of stated purpose constitutes a GDPR violation subject to administrative fines.",
+    "impact": 7,
+    "mitigation": "Map every personal data processing activity to a documented GDPR legal basis in the Record of Processing Activities (RoPA); implement purpose-limitation controls that technically prevent data use beyond the declared purpose and require a Data Protection Impact Assessment (DPIA) before introducing new processing."
+  },
+  {
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Failure to honour data subject rights",
+    "behaviour": "The process design does not support the exercise of GDPR Articles 15–22 rights (access, rectification, erasure, portability), creating a legal liability.",
+    "impact": 6,
+    "mitigation": "Design the process to include identifiable hooks for each GDPR data subject right (access, rectification, erasure, portability, objection); test these paths in QA and assign a dedicated response team with SLA timers aligned to the 30-day regulatory deadline."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Online",
+    "threat": "Unauthorised processing by a third party",
+    "behaviour": "A third-party service or processor used in the online user task processes personal data beyond the contracted scope, constituting an unlawful data-sharing arrangement.",
+    "impact": 6,
+    "mitigation": "Execute a GDPR-compliant Data Processing Agreement (DPA) with every third-party processor and conduct periodic audits or request SOC 2 / ISO 27001 evidence to verify they operate within the contracted scope; minimise data shared with third parties to only what is strictly necessary."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Offline",
+    "threat": "Breach of confidentiality obligation",
+    "behaviour": "Offline handling of data by a user breaches a statutory or contractual confidentiality obligation, triggering legal liability.",
+    "impact": 5,
+    "mitigation": "Require users handling confidential data offline to sign and annually renew a confidentiality agreement; enforce clean-desk policies and controlled physical access to areas where confidential data is processed, and log all instances of offline data handling."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateful",
+    "threat": "Unlawful cross-border data transfer",
+    "behaviour": "A stateful service transmits personal data to a jurisdiction without adequate data protection safeguards, violating GDPR Chapter V restrictions.",
+    "impact": 7,
+    "mitigation": "Geo-fence stateful service deployments to GDPR-adequate jurisdictions and document the legal transfer mechanism (SCCs, BCRs, or adequacy decision) for any permitted cross-border flows; implement routing rules that prevent personal data from leaving approved regions."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Stateless",
+    "threat": "Unlawful cross-border data transfer",
+    "behaviour": "A stateless API call inadvertently routes personal data through a non-adequate third country, constituting an unlawful transfer under GDPR.",
+    "impact": 6,
+    "mitigation": "Audit all stateless API call paths and CDN/edge node locations to ensure personal data never transits non-adequate jurisdictions; enforce data-residency constraints at the API gateway level and include transfer-mechanism documentation in the RoPA for each endpoint."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Mail",
+    "threat": "Breach of professional secrecy obligation",
+    "behaviour": "Sending regulated information (legal, medical, financial) via unencrypted email violates professional secrecy obligations imposed by sector-specific legislation.",
+    "impact": 6,
+    "mitigation": "Mandate end-to-end encryption (S/MIME or PGP) for all email containing regulated information categories; configure the mail gateway to block unencrypted outbound transmission of content matching sector-specific data patterns (e.g. DLP rules for medical or financial keywords)."
+  },
+  {
+    "task_type": "Task",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Intellectual property infringement",
+    "behaviour": "A process task handles third-party intellectual property (software, data, content) without a valid licence, creating legal exposure.",
+    "impact": 4,
+    "mitigation": "Maintain a software and content asset register that records licence type, scope, and expiry for all third-party IP used in each process task; integrate licence-scanning tools (e.g. FOSSA, Black Duck) into the CI pipeline to flag unlicensed or incompatibly licensed assets."
+  },
+  {
+    "task_type": "Task",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Failure to meet contractual obligations",
+    "behaviour": "A process step fails to satisfy a service-level agreement or contractual commitment, resulting in financial penalties or contract termination.",
+    "impact": 5,
+    "mitigation": "Instrument each process step with SLA-aware monitoring and automated alerting when performance approaches threshold limits; define escalation procedures and fallback capacity (e.g. burst-scaling or manual override) to prevent SLA breaches before they occur."
+  },
+  {
+    "task_type": "__personal__",
+    "annotation_type": "__any__",
+    "annotation_value": "__any__",
+    "threat": "Inadequate data retention and deletion",
+    "behaviour": "Personal data is retained beyond its legal retention period or not deleted as required by GDPR Article 5(1)(e), creating a compliance violation.",
+    "impact": 5,
+    "mitigation": "Implement an automated data lifecycle management policy that enforces documented retention schedules and triggers verified deletion (or anonymisation) at expiry; generate an audit trail of deletion events to demonstrate GDPR Article 5(1)(e) compliance."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Online",
+    "threat": "Absence of valid consent mechanism",
+    "behaviour": "An online user task collects personal data without presenting a GDPR-compliant consent mechanism, invalidating the legal basis for processing.",
+    "impact": 6,
+    "mitigation": "Integrate a Consent Management Platform (CMP) that presents a granular, freely withdrawable consent request before collecting personal data; log consent timestamps and version of the privacy notice accepted, and provide users with an equally prominent mechanism to withdraw consent."
+  },
+
+  {
+    "_comment": "=== SendTask / Communication Type = Fax ===",
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Fax",
+    "threat": "Interception of information",
+    "behaviour": "An unauthorised party physically retrieves or reads a fax from an unattended fax machine before the intended recipient collects it.",
+    "impact": 5,
+    "mitigation": "Require recipients to be present at the fax machine before transmission begins, or use a secure fax server that delivers received faxes as encrypted PDFs directly to the recipient's mailbox rather than printing them in a shared area."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Fax",
+    "threat": "Loss of integrity of sensitive information",
+    "behaviour": "Fax content is deliberately altered in transit or a substituted cover page redirects a fax to a fraudulent recipient, corrupting the transmitted information.",
+    "impact": 5,
+    "mitigation": "Accompany every sensitive fax with a unique reference code that the recipient must confirm via a separate channel (e.g. phone callback); use a secure fax server with end-to-end encryption (T.38 over TLS) to prevent in-transit page substitution."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Fax",
+    "threat": "Social engineering",
+    "behaviour": "Attacker sends a fax impersonating a trusted organisation to deceive the recipient into acting on fraudulent instructions.",
+    "impact": 4,
+    "mitigation": "Establish a per-sender allow-list of authorised fax numbers and automatically quarantine faxes from unlisted numbers for manual review; implement a callback verification procedure before acting on any fax instruction that triggers a financial or access-control action."
+  },
+
+  {
+    "_comment": "=== SendTask / Communication Type = API ===",
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "API",
+    "threat": "Man-in-the-middle attack",
+    "behaviour": "Attacker intercepts API traffic between the sending service and the endpoint, reading or modifying the payload without detection.",
+    "impact": 7,
+    "mitigation": "Enforce mutual TLS (mTLS) on all API connections and apply payload-level signing (JWS/JWT) so any in-transit modification is detectable independently of the transport layer; reject requests arriving over unencrypted channels at the API gateway."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "API",
+    "threat": "Injection attack",
+    "behaviour": "Attacker injects malicious data (SQL, command, or template fragments) into an outbound API call payload, exploiting insufficient input sanitisation on the receiving end.",
+    "impact": 7,
+    "mitigation": "Validate and sanitise all data against a strict schema before including it in an outbound API call; use parameterised serialisation libraries rather than string concatenation to construct API payloads, and enforce schema validation at the API gateway on both sides."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "API",
+    "threat": "Replay attack",
+    "behaviour": "Attacker captures a valid API request and retransmits it to trigger duplicate operations, such as repeated payments or duplicate record creation.",
+    "impact": 6,
+    "mitigation": "Include a cryptographically bound nonce and short-lived timestamp (max 60 seconds) in every API request and enforce server-side nonce deduplication; use OAuth 2.0 access tokens with short expiry and audience binding to prevent token reuse."
+  },
+
+  {
+    "_comment": "=== SendTask / Communication Type = Web Service ===",
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Web Service",
+    "threat": "XML/SOAP injection",
+    "behaviour": "Attacker injects malicious XML elements or SOAP headers into a web service message, manipulating server-side logic or exfiltrating data through XXE vulnerabilities.",
+    "impact": 7,
+    "mitigation": "Disable external entity processing (XXE) in all XML parsers used to process web service messages; validate every incoming and outgoing SOAP message against its published WSDL/XSD schema and reject messages that fail validation before processing."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Web Service",
+    "threat": "Man-in-the-middle attack",
+    "behaviour": "Attacker intercepts SOAP or REST messages between two parties communicating via a web service, silently reading or altering the message body.",
+    "impact": 7,
+    "mitigation": "Enforce TLS 1.2+ for all web service transport and apply WS-Security message signing and encryption so payload integrity and confidentiality are guaranteed end-to-end, independent of any intermediate proxy."
+  },
+  {
+    "task_type": "SendTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Web Service",
+    "threat": "Service unavailability via WSDL abuse",
+    "behaviour": "Attacker retrieves the public WSDL to map the service interface and submits oversized or deeply nested SOAP payloads that exhaust server resources, causing a denial of service.",
+    "impact": 6,
+    "mitigation": "Restrict WSDL/WSDL introspection access to authenticated, authorised callers only; enforce maximum message size, XML element depth, and request rate limits at the web service gateway to prevent resource-exhaustion attacks."
+  },
+
+  {
+    "_comment": "=== ReceiveTask / Communication Type = Post-Office ===",
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Post-Office",
+    "threat": "Social engineering",
+    "behaviour": "Attacker sends a counterfeit official letter mimicking a government agency or trusted authority to trick the recipient into disclosing information or performing a harmful action.",
+    "impact": 5,
+    "mitigation": "Establish a documented procedure for verifying the authenticity of unexpected official correspondence via the issuer's published contact details before acting on its instructions; train mail-handling staff to recognise and escalate suspicious letters."
+  },
+  {
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "Post-Office",
+    "threat": "Identity theft",
+    "behaviour": "Documents containing personal identifiers or credentials are stolen from the postal stream in transit or from the recipient's mailbox, enabling impersonation of the rightful addressee.",
+    "impact": 6,
+    "mitigation": "Use a secure, access-controlled mailroom or PO box for receiving sensitive documents and require signature-on-delivery for correspondence containing credentials or personal identifiers; notify recipients via a separate channel when a sensitive item has been dispatched."
+  },
+
+  {
+    "_comment": "=== ReceiveTask / Communication Type = API ===",
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "API",
+    "threat": "Injection attack",
+    "behaviour": "Attacker sends a crafted API request containing malicious payloads (SQL, command, or script fragments) that the receiving service processes without adequate validation, leading to data corruption or unauthorised execution.",
+    "impact": 7,
+    "mitigation": "Validate all incoming API request bodies and parameters against a strict OpenAPI schema at the API gateway before forwarding to the backend; apply input sanitisation and use parameterised queries so injected content is never executed as code or a database command."
+  },
+  {
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "API",
+    "threat": "Replay of messages",
+    "behaviour": "Attacker replays a previously captured valid API request to the receiving endpoint, triggering duplicate processing such as repeated state transitions or duplicate data creation.",
+    "impact": 5,
+    "mitigation": "Enforce server-side nonce deduplication and short-lived timestamp windows (max 60 seconds) on all received API requests; implement idempotency keys for mutating endpoints so replayed requests are identified and return the original response without re-processing."
+  },
+  {
+    "task_type": "ReceiveTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "API",
+    "threat": "Denial of service",
+    "behaviour": "Attacker floods the API receive endpoint with a high volume of requests, exhausting processing threads or downstream connections and rendering the service unavailable to legitimate callers.",
+    "impact": 6,
+    "mitigation": "Apply per-client and global rate limits at the API gateway with automatic throttling and circuit-breaking; deploy WAF-level DDoS protection and configure auto-scaling policies so legitimate capacity is maintained even under volumetric attack traffic."
+  },
+
+  {
+    "_comment": "=== UserTask / Interaction Type = Mobile ===",
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Mobile",
+    "threat": "Device theft or loss",
+    "behaviour": "A mobile device used to perform the task is lost or stolen, exposing locally cached process data, stored credentials, and session tokens to an unauthorised possessor.",
+    "impact": 7,
+    "mitigation": "Enforce full-disk encryption and remote-wipe capability on all mobile devices via an MDM solution; require biometric or PIN authentication with an automatic lock-out after three failed attempts and ensure no sensitive process data is cached unencrypted on the device."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Mobile",
+    "threat": "Malicious app installed",
+    "behaviour": "A malicious application installed on the user's mobile device intercepts inputs (e.g. keylogging) or reads data from the legitimate process application, exfiltrating credentials or process data.",
+    "impact": 7,
+    "mitigation": "Enforce an MDM policy that allows only approved applications from vetted stores; integrate mobile application management (MAM) controls to isolate process application data in a managed container, preventing other apps from reading its storage or clipboard."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Mobile",
+    "threat": "Man-in-the-middle via insecure Wi-Fi",
+    "behaviour": "Attacker operates a rogue Wi-Fi access point and intercepts the mobile user's process application traffic, capturing or modifying data in transit.",
+    "impact": 6,
+    "mitigation": "Enforce certificate pinning in the mobile process application so connections to rogue or certificate-substituted endpoints fail; mandate the use of a corporate VPN on untrusted networks and implement HSTS preloading so the app never falls back to unencrypted HTTP."
+  },
+
+  {
+    "_comment": "=== UserTask / Interaction Type = Kiosk ===",
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Kiosk",
+    "threat": "Physical tampering",
+    "behaviour": "Attacker installs a skimming device or hardware keylogger on a public kiosk used for the task, capturing card data or credentials from subsequent legitimate users.",
+    "impact": 8,
+    "mitigation": "Conduct regular physical inspection of kiosk hardware against a tamper-evidence checklist; deploy anti-tamper enclosures with intrusion-detection sensors that alert security staff and lock down the kiosk if the casing is opened unexpectedly."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Kiosk",
+    "threat": "Session hijacking",
+    "behaviour": "A previous user's session remains active on the kiosk, allowing the next person to continue the session and access or modify the prior user's process data.",
+    "impact": 6,
+    "mitigation": "Enforce mandatory session termination and full UI state clearance after each interaction completes or when an inactivity timeout (max 90 seconds) expires; display an explicit log-out confirmation screen and wipe all local session tokens before returning to the idle screen."
+  },
+  {
+    "task_type": "UserTask",
+    "annotation_type": "Interaction Type",
+    "annotation_value": "Kiosk",
+    "threat": "Social engineering via shoulder surfing",
+    "behaviour": "An attacker physically observes a user interacting with the kiosk, reading sensitive inputs such as PINs, reference numbers, or personal data displayed on the screen.",
+    "impact": 4,
+    "mitigation": "Install a privacy screen filter on the kiosk display and position the kiosk in a booth or with a privacy shield; mask sensitive data fields after entry and instruct users via on-screen prompts to ensure no bystanders are in viewing range before entering sensitive information."
+  },
+
+  {
+    "_comment": "=== ServiceTask / Communication Type = REST ===",
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "REST",
+    "threat": "Broken object-level authorisation",
+    "behaviour": "Attacker manipulates the resource identifier in a REST request (e.g. increments an ID in the URL) to access or modify another user's object, bypassing insufficient server-side authorisation checks.",
+    "impact": 7,
+    "mitigation": "Enforce object-level authorisation checks on every REST endpoint against the authenticated caller's identity — never derive authorisation from the client-supplied ID alone; use opaque UUIDs instead of sequential integers as resource identifiers to reduce enumeration risk."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "REST",
+    "threat": "Injection attack",
+    "behaviour": "Attacker sends a REST request with injection payloads in query parameters, headers, or the JSON body, exploiting insufficient input validation to execute unintended database queries or commands.",
+    "impact": 7,
+    "mitigation": "Validate all REST request inputs against a strict OpenAPI/JSON Schema definition at the API gateway and within the service; use ORM parameterisation or stored procedures to prevent SQL injection, and apply a WAF rule set to detect and block common injection patterns."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "REST",
+    "threat": "Denial of service via REST flood",
+    "behaviour": "Attacker overwhelms a REST service with a high volume of requests, exhausting connection pools or backend resources and denying access to legitimate consumers.",
+    "impact": 6,
+    "mitigation": "Implement per-client rate limiting and global throttling at the API gateway with configurable burst allowances; use auto-scaling and connection pooling to absorb legitimate load spikes while ensuring attack traffic is shed before reaching the application tier."
+  },
+
+  {
+    "_comment": "=== ServiceTask / Communication Type = SOAP ===",
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "SOAP",
+    "threat": "XML injection and SOAP action spoofing",
+    "behaviour": "Attacker sends a SOAP request with forged SOAPAction headers or injected XML content to invoke unauthorised operations or exfiltrate data via XXE vulnerabilities in the XML parser.",
+    "impact": 7,
+    "mitigation": "Disable external entity resolution (XXE) in the XML parser and strictly validate every SOAP message against its WSDL/XSD contract; enforce SOAPAction header verification at the service endpoint and reject any request whose header does not match the declared operation."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "SOAP",
+    "threat": "Replay attack",
+    "behaviour": "Attacker captures a signed SOAP message and retransmits it to trigger a duplicate business operation, exploiting the absence of replay-prevention controls.",
+    "impact": 6,
+    "mitigation": "Include a WS-Security wsu:Timestamp element with a short validity window (max 5 minutes) and a unique wsu:Id nonce in every SOAP message; maintain a server-side nonce cache for the validity window and reject any message whose nonce has already been seen."
+  },
+  {
+    "task_type": "ServiceTask",
+    "annotation_type": "Communication Type",
+    "annotation_value": "SOAP",
+    "threat": "Denial of service via oversized SOAP payloads",
+    "behaviour": "Attacker submits deeply nested or excessively large SOAP messages that consume disproportionate CPU and memory during XML parsing, causing the service to become unresponsive.",
+    "impact": 6,
+    "mitigation": "Enforce maximum message size, XML element nesting depth, and attribute count limits at the SOAP gateway before parsing; apply per-client request-rate throttling and use a streaming XML parser with depth guards to fail fast on malformed or oversized payloads."
+  },
+
+  {
+    "_comment": "=== Task / Audit = None (no audit logging) ===",
+    "task_type": "Task",
+    "annotation_type": "Audit",
+    "annotation_value": "None",
+    "threat": "Loss of accountability",
+    "behaviour": "Because no audit logging is configured for this task, there is no record of who performed which action or when, eliminating the ability to reconstruct events or attribute responsibility after a security incident.",
+    "impact": 6,
+    "mitigation": "Enable tamper-evident audit logging for all task executions, recording at minimum the actor identity, action performed, affected resource, and UTC timestamp; store logs in an append-only, access-controlled repository and define a retention period aligned with applicable legal and forensic requirements."
+  }
+]
